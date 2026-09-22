@@ -207,40 +207,64 @@ async function submitCode() {
     }
 }
 
-// --- LOGIKA ORGANIZÁTORA: ŽIVÝ DASHBOARD (ZABEZPEČENÁ VERZE) ---
+// --- LOGIKA ORGANIZÁTORA: ŽIVÝ DASHBOARD (VYSOCE ODOLNÁ VERZE) ---
 async function loadAdminDashboard() {
-    if (!_supabase) return;
+    // Pokusíme se najít prvek pro tabulku v HTML
+    let leaderboardBody = document.getElementById('admin-leaderboard-body');
+    
+    // Pokud id v HTML chybí, zkusíme najít první tbody na stránce
+    if (!leaderboardBody) {
+        leaderboardBody = document.querySelector('tbody');
+    }
+    
+    if (!leaderboardBody) {
+        console.error("Kritická chyba: V HTML kódu nebyl nalezen žádný prvek <tbody> pro tabulku.");
+        return;
+    }
+
+    if (!_supabase) {
+        leaderboardBody.innerHTML = `<tr><td colspan="3" style="padding:15px; text-align:center; color:red;">Chyba: Supabase klient není inicializován.</td></tr>`;
+        return;
+    }
+
     try {
-        const { data: tymy, error } = await _supabase
-            .from('tymy')
-            .select(`
-                nazev_tymu,
-                sifry (
-                    nazev_sifry
-                )
-            `);
-
-        if (error) throw error;
-
-        const leaderboardBody = document.getElementById('admin-leaderboard-body');
-        if (!leaderboardBody) return;
+        // Dotaz na týmy
+        const { data: tymy, error: tymyError } = await _supabase.from('tymy').select('*');
         
+        if (tymyError) {
+            leaderboardBody.innerHTML = `<tr><td colspan="3" style="padding:15px; text-align:center; color:red;">Chyba DB: ${tymyError.message}</td></tr>`;
+            return;
+        }
+
+        // Dotaz na šifry pro spárování názvů v paměti webu
+        const { data: sifry } = await _supabase.from('sifry').select('id, nazev_sifry');
+        const sifryMapa = {};
+        if (sifry) {
+            sifry.forEach(s => { sifryMapa[s.id] = s.nazev_sifry; });
+        }
+
         leaderboardBody.innerHTML = '';
 
+        // Pokud Supabase vrátil prázdný výsledek (např. kvůli chybějící RLS Policy)
         if (!tymy || tymy.length === 0) {
             leaderboardBody.innerHTML = `
                 <tr>
-                    <td colspan="3" style="padding: 15px; text-align: center; color: #64748b; font-style: italic;">
-                        V databázi zatím nejsou žádné týmy.
+                    <td colspan="3" style="padding: 20px; text-align: center; color: #b45309; background: #fffbeb; font-weight: bold; border: 1px solid #fde68a;">
+                        ⚠️ Z databáze nepřišla žádná data. V Supabase u tabulky 'tymy' musíte povolit politiku (Policy) pro operaci SELECT pro roli 'anon'.
                     </td>
                 </tr>`;
             return;
         }
 
+        // Vykreslení reálných týmů z databáze
         tymy.forEach(tym => {
             const radek = document.createElement('tr');
-            const poziceText = tym.sifry ? tym.sifry.nazev_sifry : '⏳ Na Startu / Čeká v lobby';
             
+            let poziceText = '⏳ Na Startu / Čeká v lobby';
+            if (tym.aktualni_sifra_id && sifryMapa[tym.aktualni_sifra_id]) {
+                poziceText = sifryMapa[tym.aktualni_sifra_id];
+            }
+
             radek.innerHTML = `
                 <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-size: 14px; text-align: left; font-weight: bold; color: #1e293b;">
                     ${tym.nazev_tymu}
@@ -255,7 +279,7 @@ async function loadAdminDashboard() {
             leaderboardBody.appendChild(radek);
         });
     } catch (e) {
-        console.error('Chyba administrátorského panelu při vykreslování:', e.message || e);
+        leaderboardBody.innerHTML = `<tr><td colspan="3" style="padding:15px; text-align:center; color:red;">Chyba skriptu: ${e.message || e}</td></tr>`;
     }
 }
 
