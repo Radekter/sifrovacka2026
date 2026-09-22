@@ -15,8 +15,8 @@
         th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
         th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #64748b; }
     </style>
-    <!-- Oficiální produkční SDK Supabase pro stabilní přenosy dat -->
-    <script src="https://jsdelivr.net"></script>
+    <!-- Stabilní načítání Supabase knihovny, které sítě neblokují -->
+    <script src="https://unpkg.com"></script>
 </head>
 <body>
 
@@ -39,6 +39,7 @@
         <h2 style="font-size: 20px; font-weight: 800;">Připravte se na start!</h2>
         <p style="color: #059669; font-weight: bold; font-size: 18px; margin-top: 15px;">Čekání na hromadný start...</p>
     </div>
+
     <!-- 3. OBRAZOVKA: HERNÍ PANEL -->
     <div id="view-game" class="karta hidden">
         <span id="game-station-num" style="background: #ecfdf5; color: #047857; font-weight: bold; font-size: 12px; padding: 4px 8px; border-radius: 9999px;">1. Stanoviště</span>
