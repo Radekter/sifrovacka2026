@@ -103,8 +103,8 @@
             const err = document.getElementById('login-error');
             err.style.display = 'none';
 
-            if(email === 'admin@hra.cz' && pass === 'admin123') {
-                aktivniUzivatel = { email: 'admin@hra.cz' };
+            if(email === 'ab' && pass === 'ab') {
+                aktivniUzivatel = { email: 'admin' };
                 showView('view-admin');
                 loadAdminDashboard();
                 setInterval(loadAdminDashboard, 5000);
