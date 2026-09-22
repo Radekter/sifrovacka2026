@@ -39,7 +39,7 @@
         <h2 style="font-size: 20px; font-weight: 800;">Připravte se na start!</h2>
         <p style="color: #059669; font-weight: bold; font-size: 18px; margin-top: 15px;">Čekání na hromadný start...</p>
     </div>
-    <!-- 3. OBRAZOVKA: HERNÍ PANEL -->
+       <!-- 3. OBRAZOVKA: HERNÍ PANEL -->
     <div id="view-game" class="karta hidden">
         <span id="game-station-num" style="background: #ecfdf5; color: #047857; font-weight: bold; font-size: 12px; padding: 4px 8px; border-radius: 9999px;">1. Stanoviště</span>
         <h2 id="game-cipher-name" style="font-size: 20px; font-weight: 800; margin-top: 10px;">Načítání...</h2>
@@ -58,7 +58,7 @@
     </div>
 
     <!-- 5. OBRAZOVKA: PANEL ORGANIZÁTORA -->
-    <div id="view-admin" class="karta hidden" style="max-width: 600px;">
+    <div id="view-admin" class="karta" style="max-width: 600px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
             <h2 style="font-size: 20px; font-weight: 800; margin: 0;">🛠️ Panel organizátora</h2>
             <button onclick="startGlobalGame()" style="width: auto; margin: 0; padding: 8px 15px; background: #2563eb; font-size: 12px;">⚡ ODSTARTOVAT HRU</button>
@@ -78,12 +78,12 @@
 
     <script>
         const SUPABASE_URL = "https://supabase.co";
-        // Váš zbrusu nový funkční Legacy anon klíč bez RLS blokování
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jY2VsdGZvbW9iaWdwZHNocmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDc5NzEsImV4cCI6MjEwNTU4Mzk3MX0.MWa8_pFLcELq-S3B0UIKGrXmI-tHIep8CO-GtMEB9t4";
 
         let aktivniUzivatel = null;
         let currentTeamData = null;
         let _supabase = null;
+        let gameTimerInterval = null; // Definice chybějícího intervalu
 
         if (typeof supabase !== 'undefined') {
             _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -91,26 +91,38 @@
 
         function showView(viewId) {
             ['view-login', 'view-lobby', 'view-game', 'view-finish', 'view-admin'].forEach(id => {
-                document.getElementById(id).style.display = 'none';
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
             });
-            document.getElementById(viewId).style.display = 'block';
+            const cil = document.getElementById(viewId);
+            if (cil) cil.style.display = 'block';
             document.getElementById('user-display').innerText = aktivniUzivatel ? `Přihlášen: ${aktivniUzivatel.email}` : 'Nepřihlášen';
         }
 
-        showView('view-login');
+        // --- OPRAVENÁ SMYČKA PRO AUTOMATICKÉ NAČÍTÁNÍ PO OTEVŘENÍ WEBU ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Automaticky přihlásíme fiktivního admina a spustíme načítání týmů
+            aktivniUzivatel = { email: 'Administrátor' };
+            document.getElementById('user-display').innerText = `Přihlášen: Administrátor`;
+            
+            loadAdminDashboard(); // První okamžité načtení dat z DB
+            
+            clearInterval(gameTimerInterval);
+            gameTimerInterval = setInterval(loadAdminDashboard, 4000); // Pravidelná aktualizace každé 4 sekundy
+        });
 
         async function handleLogin() {
             const email = document.getElementById('login-username').value.trim();
             const pass = document.getElementById('login-password').value.trim();
             const err = document.getElementById('login-error');
-            err.style.display = 'none';
+            if (err) err.style.display = 'none';
 
-            // Vaše nové přihlášení ab a ab
             if(email === 'ab' && pass === 'ab') {
                 aktivniUzivatel = { email: 'Administrátor' };
                 showView('view-admin');
                 loadAdminDashboard();
-                setInterval(loadAdminDashboard, 4000);
+                clearInterval(gameTimerInterval);
+                gameTimerInterval = setInterval(loadAdminDashboard, 4000);
                 return;
             }
 
@@ -122,17 +134,19 @@
             try {
                 const { data, error } = await _supabase.from('tymy').select('*').eq('prihlasovaci_jmeno', email).eq('heslo', pass);
                 if (error || !data || data.length === 0) {
-                    err.style.display = 'block';
+                    if (err) err.style.display = 'block';
                     return;
                 }
                 aktivniUzivatel = { email: email };
-                currentTeamData = data[0];
+                currentTeamData = data[0] || data; // Ošetření pole z DB
                 checkGameStatus();
-                setInterval(checkGameStatus, 4000);
+                clearInterval(gameTimerInterval);
+                gameTimerInterval = setInterval(checkGameStatus, 4000);
             } catch (e) {
-                err.style.display = 'block';
+                if (err) err.style.display = 'block';
             }
         }
+
                 async function checkGameStatus() {
             if (!currentTeamData || !_supabase) return;
             try {
