@@ -168,7 +168,7 @@
             err.style.display = 'none';
 
             try {
-                const { data: cipher = [] } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id);
+                const { data: cipher = } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id);
                 if (cipher && cipher.length > 0 && input === cipher[0].kod_stanoviste.toUpperCase()) {
                     let nextIndex = currentTeamData.aktualni_sifra_id + 1;
                     await _supabase.from('tymy').update({ aktualni_sifra_id: nextIndex }).eq('id', currentTeamData.id);
