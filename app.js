@@ -1,5 +1,5 @@
 // ==========================================
-// ČÁST 1: KONFIGURACE A LOGIKA HRÁČE
+// NOVÝ KÓD: ČÁST 1 (KONFIGURACE A HRÁČ)
 // ==========================================
 
 // --- CONFIGURACE DATABÁZE ---
@@ -21,20 +21,30 @@ if (typeof supabase !== 'undefined') {
 
 // Přepínání sekcí webu
 function showView(viewId) {
-    ['view-login', 'view-lobby', 'view-game', 'view-finish', 'view-admin'].forEach(id => {
-        document.getElementById(id).style.display = 'none';
+    const elementy = ['view-login', 'view-lobby', 'view-game', 'view-finish', 'view-admin'];
+    elementy.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
     });
-    document.getElementById(viewId).style.display = 'block';
+    
+    const cilovyEl = document.getElementById(viewId);
+    if (cilovyEl) cilovyEl.style.display = 'block';
     
     const displayEmail = aktivniUzivatel ? aktivniUzivatel.email : 'Nepřihlášen';
-    document.getElementById('user-display').innerText = `Přihlášen: ${displayEmail}`;
+    const userDisplayEl = document.getElementById('user-display');
+    if (userDisplayEl) userDisplayEl.innerText = `Přihlášen: ${displayEmail}`;
 }
 
 // Inicializace event listenerů po načtení stránky
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('btn-login').addEventListener('click', handleLogin);
-    document.getElementById('btn-start-game').addEventListener('click', startGlobalGame);
-    document.getElementById('btn-submit-code').addEventListener('click', submitCode);
+    const btnLogin = document.getElementById('btn-login');
+    const btnStartGame = document.getElementById('btn-start-game');
+    const btnSubmitCode = document.getElementById('btn-submit-code');
+
+    if (btnLogin) btnLogin.addEventListener('click', handleLogin);
+    if (btnStartGame) btnStartGame.addEventListener('click', startGlobalGame);
+    if (btnSubmitCode) btnSubmitCode.addEventListener('click', submitCode);
+    
     showView('view-login');
 });
 
@@ -43,13 +53,14 @@ async function handleLogin() {
     const email = document.getElementById('login-username').value.trim();
     const pass = document.getElementById('login-password').value.trim();
     const err = document.getElementById('login-error');
-    err.style.display = 'none';
+    if (err) err.style.display = 'none';
 
     // Administrátorský režim
     if (email === 'ab' && pass === 'ab') {
         aktivniUzivatel = { email: 'Administrátor' };
         showView('view-admin');
         loadAdminDashboard();
+        clearInterval(gameTimerInterval);
         gameTimerInterval = setInterval(loadAdminDashboard, 4000);
         return;
     }
@@ -62,17 +73,18 @@ async function handleLogin() {
     try {
         const { data, error } = await _supabase.from('tymy').select('*').eq('prihlasovaci_jmeno', email).eq('heslo', pass);
         if (error || !data || data.length === 0) {
-            err.style.display = 'block';
+            if (err) err.style.display = 'block';
             return;
         }
         
         aktivniUzivatel = { email: email };
-        currentTeamData = data;
+        currentTeamData = data[0];
         
         checkGameStatus();
+        clearInterval(gameTimerInterval);
         gameTimerInterval = setInterval(checkGameStatus, 4000);
     } catch (e) {
-        err.style.display = 'block';
+        if (err) err.style.display = 'block';
     }
 }
 
@@ -108,7 +120,7 @@ async function checkGameStatus() {
     }
 }
 // ==========================================
-// ČÁST 2: NÁPOVĚDY, KÓDY A ADMINISTRACE
+// NOVÝ KÓD: ČÁST 2 (NÁPOVĚDY A OPRAVENÝ ADMIN)
 // ==========================================
 
 // --- LOGIKA HRÁČE: ODPOČET NÁPOVĚDY ---
@@ -140,16 +152,20 @@ async function setupHintTimer(cipher) {
         const timerElement = document.getElementById('hint-timer');
         const textElement = document.getElementById('hint-text');
 
+        if (!timerElement) return;
+
         if (zbyvaMilisekund <= 0) {
             clearInterval(hintTimerInterval);
             timerElement.innerText = "💡 Nápověda je k dispozici:";
-            textElement.innerText = cipher.napoveda_text || "Pro tuto šifru není nápověda zadána.";
-            textElement.style.display = "block";
+            if (textElement) {
+                textElement.innerText = cipher.napoveda_text || "Pro tuto šifru není nápověda zadána.";
+                textElement.style.display = "block";
+            }
         } else {
             const minuty = Math.floor(zbyvaMilisekund / 60000);
             const sekundy = Math.floor((zbyvaMilisekund % 60000) / 1000);
             timerElement.innerText = `Nápověda se odemkne za: ${minuty}:${sekundy < 10 ? '0' : ''}${sekundy}`;
-            textElement.style.display = "none";
+            if (textElement) textElement.style.display = "none";
         }
     }, 1000);
 }
@@ -158,7 +174,7 @@ async function setupHintTimer(cipher) {
 async function submitCode() {
     const inputCode = document.getElementById('game-input-code').value.trim().toUpperCase();
     const errorElement = document.getElementById('game-error');
-    errorElement.style.display = 'none';
+    if (errorElement) errorElement.style.display = 'none';
 
     if (!inputCode) return;
 
@@ -178,18 +194,20 @@ async function submitCode() {
                 .update({ aktualni_sifra_id: dalsiSifraId })
                 .eq('id', currentTeamData.id);
 
-            document.getElementById('game-input-code').value = '';
+            const codeInputEl = document.getElementById('game-input-code');
+            if (codeInputEl) codeInputEl.value = '';
+            
             alert('🎉 Správně! Postupujete na další stanoviště.');
             checkGameStatus();
         } else {
-            errorElement.style.display = 'block';
+            if (errorElement) errorElement.style.display = 'block';
         }
     } catch (e) {
         console.error("Chyba při odesílání kódu:", e);
     }
 }
 
-// --- LOGIKA ORGANIZÁTORA: ŽIVÝ DASHBOARD ---
+// --- LOGIKA ORGANIZÁTORA: ŽIVÝ DASHBOARD (ZABEZPEČENÁ VERZE) ---
 async function loadAdminDashboard() {
     if (!_supabase) return;
     try {
@@ -206,23 +224,38 @@ async function loadAdminDashboard() {
 
         const leaderboardBody = document.getElementById('admin-leaderboard-body');
         if (!leaderboardBody) return;
+        
         leaderboardBody.innerHTML = '';
+
+        if (!tymy || tymy.length === 0) {
+            leaderboardBody.innerHTML = `
+                <tr>
+                    <td colspan="3" style="padding: 15px; text-align: center; color: #64748b; font-style: italic;">
+                        V databázi zatím nejsou žádné týmy.
+                    </td>
+                </tr>`;
+            return;
+        }
 
         tymy.forEach(tym => {
             const radek = document.createElement('tr');
             const poziceText = tym.sifry ? tym.sifry.nazev_sifry : '⏳ Na Startu / Čeká v lobby';
             
             radek.innerHTML = `
-                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${tym.nazev_tymu}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #475569;">${poziceText}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
-                    <button style="width: auto; margin: 0; padding: 4px 10px; font-size: 11px; background: #64748b;" onclick="alert('Tým: ${tym.nazev_tymu} stále bojuje!')">Detail</button>
+                <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-size: 14px; text-align: left; font-weight: bold; color: #1e293b;">
+                    ${tym.nazev_tymu}
+                </td>
+                <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-size: 14px; text-align: left; color: #475569;">
+                    ${poziceText}
+                </td>
+                <td style="padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-size: 14px; text-align: left;">
+                    <button style="width: auto; margin: 0; padding: 5px 10px; font-size: 11px; background: #64748b; color: white; border: none; border-radius: 4px; cursor: pointer;" onclick="alert('Tým: ${tym.nazev_tymu}')">Detail</button>
                 </td>
             `;
             leaderboardBody.appendChild(radek);
         });
     } catch (e) {
-        console.error('Chyba administrátorského panelu:', e.message);
+        console.error('Chyba administrátorského panelu při vykreslování:', e.message || e);
     }
 }
 
