@@ -3,102 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Šifrovací Hra 2026</title>
-    <script src="https://jsdelivr.net"></script>
+    <title>🔒 ŠIFROVAČKA 2026</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f1f5f9; padding: 20px; text-align: center; }
+        .karta { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-width: 400px; margin: 20px auto; text-align: left; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; background: #059669; color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background: #047857; }
+        .hidden { display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #64748b; }
+    </style>
     <script src="https://jsdelivr.net"></script>
 </head>
-<body class="bg-slate-100 text-slate-900 font-sans min-h-screen flex flex-col justify-between">
+<body>
 
-    <header class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center shadow-sm">
-        <div>
-            <h1 class="text-base font-black text-slate-800 tracking-tight">🔒 ŠIFROVAČKA 2026</h1>
-            <p id="user-display" class="text-xs text-slate-500 font-medium">Nepřihlášen</p>
+    <h1 style="font-size: 24px; font-weight: 900; margin-bottom: 5px;">🔒 ŠIFROVAČKA 2026</h1>
+    <p id="user-display" style="font-size: 12px; color: #64748b; margin-bottom: 20px;">Nepřihlášen</p>
+
+    <!-- 1. OBRAZOVKA: PŘIHLÁŠENÍ -->
+    <div id="view-login" class="karta">
+        <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 15px; text-align: center;">Přihlášení do hry</h2>
+        <label style="font-size: 12px; font-weight: bold; color: #64748b;">Přihlašovací jméno / Email</label>
+        <input type="text" id="login-username" placeholder="admin@hra.cz">
+        <label style="font-size: 12px; font-weight: bold; color: #64748b;">Heslo</label>
+        <input type="password" id="login-password" placeholder="••••••••">
+        <p id="login-error" style="color: #dc2626; font-size: 12px; font-weight: bold; display: none; text-align: center;">❌ Nesprávné údaje.</p>
+        <button onclick="handleLogin()">Vstoupit do terminálu</button>
+    </div>
+
+    <!-- 2. OBRAZOVKA: LOBBY ČEKÁRNA -->
+    <div id="view-lobby" class="karta hidden" style="text-align: center;">
+        <h2 style="font-size: 20px; font-weight: 800;">Připravte se na start!</h2>
+        <p style="color: #059669; font-weight: bold; font-size: 18px; margin-top: 15px;">Čekání na hromadný start...</p>
+    </div>
+
+    <!-- 3. OBRAZOVKA: HERNÍ PANEL -->
+    <div id="view-game" class="karta hidden">
+        <span id="game-station-num" style="background: #ecfdf5; color: #047857; font-weight: bold; font-size: 12px; padding: 4px 8px; border-radius: 9999px;">1. Stanoviště</span>
+        <h2 id="game-cipher-name" style="font-size: 20px; font-weight: 800; margin-top: 10px;">Načítání...</h2>
+        <div id="hint-box" style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 8px; margin: 15px 0; font-size: 14px;">
+            <p id="hint-timer">Načítání odpočtu...</p>
         </div>
-        <button id="logout-btn" onclick="logout()" class="hidden text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1.5 rounded-lg hover:bg-red-100 transition border border-red-200">Odhlásit</button>
-    </header>
+        <input type="text" id="game-input-code" placeholder="ZADEJTE KÓD STANOVIŠTĚ" style="text-transform: uppercase; text-align: center; font-weight: bold;">
+        <p id="game-error" style="color: #dc2626; font-size: 12px; font-weight: bold; display: none; text-align: center;">❌ Nesprávný kód.</p>
+        <button onclick="submitCode()">Odeslat kód</button>
+    </div>
 
-    <main class="flex-1 p-4 max-w-md mx-auto w-full flex flex-col justify-center">
-        
-        <!-- PŘIHLÁŠENÍ -->
-        <div id="view-login" class="space-y-4">
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-2xl mx-auto mb-3 shadow-inner">🔑</div>
-                <h2 class="text-2xl font-black tracking-tight text-slate-800">Přihlášení do hry</h2>
-            </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1 px-1">Přihlašovací jméno / Email</label>
-                    <input type="text" id="login-username" placeholder="admin@hra.cz" class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500 transition">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1 px-1">Heslo</label>
-                    <input type="password" id="login-password" placeholder="••••••••" class="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500 transition">
-                </div>
-                <p id="login-error" class="hidden text-red-600 text-xs font-bold bg-red-50 p-2.5 rounded-lg border border-red-100 text-center"></p>
-                <button onclick="handleLogin()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base py-3.5 rounded-xl transition shadow-md">Vstoupit do terminálu</button>
-            </div>
+    <!-- 4. OBRAZOVKA: CÍL -->
+    <div id="view-finish" class="karta hidden" style="text-align: center;">
+        <h2 style="font-size: 24px; font-weight: 900; color: #b45309;">🏆 Jste v cíli!</h2>
+        <p style="color: #475569; margin-top: 10px;">Gratulujeme k dokončení celé hry.</p>
+    </div>
+
+    <!-- 5. OBRAZOVKA: PANEL ORGANIZÁTORA -->
+    <div id="view-admin" class="karta hidden" style="max-width: 600px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+            <h2 style="font-size: 20px; font-weight: 800; margin: 0;">🛠️ Panel organizátora</h2>
+            <button onclick="startGlobalGame()" style="width: auto; margin: 0; padding: 8px 15px; background: #2563eb; font-size: 12px;">⚡ ODSTARTOVAT HRU</button>
         </div>
+        <h3 style="font-size: 14px; font-weight: bold; color: #1e293b;">📊 ŽIVÉ VÝSLEDKY TÝMŮ</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Název týmu</th>
+                    <th>Aktuální pozice</th>
+                    <th>Akce</th>
+                </tr>
+            </thead>
+            <tbody id="admin-leaderboard-body"></tbody>
+        </table>
+    </div>
+    <script>
+        const SUPABASE_URL = "https://supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jY2VsdGZvbW9iaWdwZHNocmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTYwNzcyNzMsImV4cCI6MjAzMTY1MzI3M30.7M-gT-M6fF99oXw7x_NpxgZ7h8g3Q9V2_q8w8w-8Y_o";
 
-        <!-- ČEKÁRNA LOBBY -->
-        <div id="view-lobby" class="hidden text-center space-y-6">
-            <div class="w-20 h-20 bg-slate-800 text-white rounded-full flex items-center justify-center text-3xl mx-auto shadow-xl animate-pulse">⏱️</div>
-            <h2 class="text-2xl font-black text-slate-800 tracking-tight">Připravte se na start!</h2>
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl px-8 py-5 shadow-2xl inline-block">
-                <p class="text-xl font-mono font-black text-emerald-400">Čekání na hromadný start...</p>
-            </div>
-        </div>
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let currentUser = null;
+        let currentTeamData = null;
 
-        <!-- HERNÍ PANEL -->
-        <div id="view-game" class="hidden space-y-4">
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                <span id="game-station-num" class="bg-emerald-50 text-emerald-700 font-bold text-xs px-2.5 py-1 rounded-full uppercase tracking-wider">1. Stanoviště</span>
-                <h2 id="game-cipher-name" class="text-xl font-black text-slate-800 mt-2">Načítání...</h2>
-            </div>
-            <div id="hint-box" class="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-center">
-                <p id="hint-timer" class="text-sm font-medium text-gray-700">Načítání odpočtu nápovědy...</p>
-            </div>
-            <div class="space-y-3 pt-1">
-                <input type="text" id="game-input-code" placeholder="ZADEJTE KÓD STANOVIŠTĚ" class="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-lg font-mono tracking-wider focus:outline-none focus:border-emerald-500 uppercase text-center shadow-sm">
-                <p id="game-error" class="hidden text-red-600 text-xs font-bold bg-red-50 p-2.5 rounded-lg border border-red-100 text-center">❌ Nesprávný kód stanoviště.</p>
-                <button onclick="submitCode()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg py-4 rounded-xl transition shadow-md">Odeslat kód</button>
-            </div>
-        </div>
+        function showView(viewId) {
+            ['view-login', 'view-lobby', 'view-game', 'view-finish', 'view-admin'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            document.getElementById(viewId).style.display = 'block';
+            document.getElementById('user-display').innerText = currentUser ? `Přihlášen: ${currentUser.email}` : 'Nepřihlášen';
+        }
 
-        <!-- CÍL -->
-        <div id="view-finish" class="hidden text-center space-y-4">
-            <div class="w-24 h-24 bg-amber-500 text-white rounded-full flex items-center justify-center text-5xl mx-auto shadow-xl animate-bounce">🏆</div>
-            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Jste v cíli!</h2>
-        </div>
+        showView('view-login');
 
-        <!-- PANEL ORGANIZÁTORA -->
-        <div id="view-admin" class="hidden space-y-6 max-w-4xl w-full mx-auto my-4">
-            <div class="flex justify-between items-center border-b border-slate-200 pb-4">
-                <h2 class="text-2xl font-black text-slate-800">🛠️ Panel organizátora</h2>
-                <button onclick="startGlobalGame()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-4 py-2 rounded-xl shadow-md">⚡ ODSTARTOVAT HRU NYNÍ</button>
-            </div>
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="bg-slate-900 text-white p-4 font-bold text-sm tracking-wide">📊 ŽIVÉ VÝSLEDKY TÝMŮ</div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                <th class="p-3">Název týmu</th>
-                                <th class="p-3">Aktuální pozice</th>
-                                <th class="p-3">Akce</th>
-                            </tr>
-                        </thead>
-                        <tbody id="admin-leaderboard-body" class="text-sm font-medium text-slate-700 divide-y divide-slate-100"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </main>
+        async function handleLogin() {
+            const email = document.getElementById('login-username').value.trim();
+            const pass = document.getElementById('login-password').value.trim();
+            const err = document.getElementById('login-error');
+            err.style.display = 'none';
 
-    <footer class="text-center py-4 text-[10px] text-slate-400 font-medium bg-white border-t border-slate-200/50">
-        🔒 Spojení se Supabase aktivní
-    </footer>
+            if(email === 'admin@hra.cz' && pass === 'admin123') {
+                currentUser = { email: 'admin@hra.cz' };
+                showView('view-admin');
+                loadAdminDashboard();
+                setInterval(loadAdminDashboard, 5000);
+                return;
+            }
 
-    <!-- Načtení herního mozku ze samostatného souboru -->
-    <script src="app.js"></script>
+            try {
+                const { data, error } = await _supabase.from('tymy').select('*').eq('prihlasovaci_jmeno', email).eq('heslo', pass);
+                if (error || !data || data.length === 0) {
+                    err.style.display = 'block';
+                    return;
+                }
+                currentUser = { email: email };
+                currentTeamData = data[0];
+                checkGameStatus();
+                setInterval(checkGameStatus, 5000);
+            } catch (e) {
+                err.style.display = 'block';
+            }
+        }
+
+        async function checkGameStatus() {
+            if (!currentTeamData) return;
+            try {
+                const { data: config } = await _supabase.from('nastaveni_hry').select('*').eq('klic', 'cas_startu');
+                const { data: team } = await _supabase.from('tymy').select('*').eq('id', currentTeamData.id);
+                if (team && team.length > 0) currentTeamData = team[0];
+
+                if (!config || config.length === 0) {
+                    showView('view-lobby');
+                    return;
+                }
+
+                if (currentTeamData.aktualni_sifra_id === null || currentTeamData.aktualni_sifra_id > 4) {
+                    showView('view-finish');
+                    return;
+                }
+
+                const { data: cipher } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id);
+                if(cipher && cipher.length > 0) {
+                    showView('view-game');
+                    document.getElementById('game-station-num').innerText = `${cipher[0].poradi}. Stanoviště`;
+                    document.getElementById('game-cipher-name').innerText = cipher[0].nazev_sifry;
+                    document.getElementById('hint-timer').innerText = cipher[0].napoveda_text ? `💡 Nápověda: ${cipher[0].napoveda_text}` : 'Pro toto stanoviště není nápověda.';
+                }
+            } catch (e) {}
+        }
+
+        async function submitCode() {
+            const input = document.getElementById('game-input-code').value.trim().toUpperCase();
+            const err = document.getElementById('game-error');
+            err.style.display = 'none';
+
+            try {
+                const { data: cipher } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id);
+                if (cipher && cipher.length > 0 && input === cipher[0].kod_stanoviste.toUpperCase()) {
+                    let nextIndex = currentTeamData.aktualni_sifra_id + 1;
+                    await _supabase.from('tymy').update({ aktualni_sifra_id: nextIndex }).eq('id', currentTeamData.id);
+                    document.getElementById('game-input-code').value = '';
+                    checkGameStatus();
+                } else {
+                    err.style.display = 'block';
+                }
+            } catch (e) {
+                err.style.display = 'block';
+            }
+        }
+
+        async function loadAdminDashboard() {
+            try {
+                const { data: teams } = await _supabase.from('tymy').select('*');
+                const tbody = document.getElementById('admin-leaderboard-body');
+                if(teams && tbody) {
+                    tbody.innerHTML = teams.map(t => `
+                        <tr>
+                            <td><b>${t.nazev_tymu}</b></td>
+                            <td>${t.aktualni_sifra_id ? t.aktualni_sifra_id + '. šifra' : '<span style="color:blue;font-weight:bold;">Lobby / Cíl</span>'}</td>
+                            <td><button onclick="forceNext(${t.id}, ${t.aktualni_sifra_id || 1})" style="width:auto;padding:4px 8px;font-size:11px;background:#64748b;margin:0;">Posunout ➔</button></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch(e) {}
+        }
+
+        async function forceNext(teamId, currentId) {
+            await _supabase.from('tymy').update({ aktualni_sifra_id: currentId + 1 }).eq('id', teamId);
+            loadAdminDashboard();
+        }
+
+        async function startGlobalGame() {
+            const nowIso = new Date().toISOString();
+            await _supabase.from('nastaveni_hry').upsert({ klic: 'cas_startu', hodnota: nowIso });
+            alert("🚀 Hra byla hromadně odstartována!");
+        }
+    </script>
 </body>
 </html>
