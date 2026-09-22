@@ -15,7 +15,6 @@
         th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
         th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #64748b; }
     </style>
-    <!-- Nový bezpečnější server pro načtení databáze, který síť nebude blokovat -->
     <script src="https://unpkg.com"></script>
 </head>
 <body>
@@ -80,7 +79,6 @@
         const SUPABASE_URL = "https://supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jY2VsdGZvbW9iaWdwZHNocmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTYwNzcyNzMsImV4cCI6MjAzMTY1MzI3M30.7M-gT-M6fF99oXw7x_NpxgZ7h8g3Q9V2_q8w8w-8Y_o";
 
-        // Vytvoření globální herní proměnné bez konfliktu inicializace
         let aktivniUzivatel = null;
         let currentTeamData = null;
         let _supabase = null;
@@ -114,7 +112,7 @@
             }
 
             if (!_supabase) {
-                alert("❌ Nelze se spojit s databází. Zkontrolujte připojení k internetu.");
+                alert("❌ Nelze se spojit s databází.");
                 return;
             }
 
@@ -161,7 +159,7 @@
         }
 
         async function submitCode() {
-            if (!_supabase) return;
+            if (!_supabase || !currentTeamData) return;
             const input = document.getElementById('game-input-code').value.trim().toUpperCase();
             const err = document.getElementById('game-error');
             err.style.display = 'none';
@@ -184,7 +182,7 @@
         async function loadAdminDashboard() {
             if (!_supabase) return;
             try {
-                const { data: teams } = await _supabase.from('tymy').select('*');
+                const { data: teams } = await _supabase.from('tymy').select('*').order('id', { ascending: true });
                 const tbody = document.getElementById('admin-leaderboard-body');
                 if(teams && tbody) {
                     tbody.innerHTML = teams.map(t => `
