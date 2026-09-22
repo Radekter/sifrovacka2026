@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔒 ŠIFROVAČKA 2026</title>
+    <title>🔒 ŠIFROVAČKA 2026.</title>
     <style>
         body { font-family: sans-serif; background-color: #f1f5f9; padding: 20px; text-align: center; }
         .karta { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-width: 400px; margin: 20px auto; text-align: left; }
@@ -15,6 +15,7 @@
         th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
         th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #64748b; }
     </style>
+    <!-- Stabilní načítání Supabase knihovny z unpkg, které sítě neblokují -->
     <script src="https://unpkg.com"></script>
 </head>
 <body>
@@ -77,6 +78,7 @@
     </div>
     <script>
         const SUPABASE_URL = "https://supabase.co";
+        // Váš zbrusu nový správný klíč ze Supabase
         const SUPABASE_ANON_KEY = "sb_publishable_7yYC6sAqr0fnPB7E_jlv4w_O9mNt3db";
 
         let aktivniUzivatel = null;
@@ -103,12 +105,12 @@
             const err = document.getElementById('login-error');
             err.style.display = 'none';
 
-            // NATVRDO NASTAVENÝ ADMIN 'ab' A 'ab'
+            // Vaše přihlášení ab a ab
             if(email === 'ab' && pass === 'ab') {
                 aktivniUzivatel = { email: 'Administrátor' };
                 showView('view-admin');
                 loadAdminDashboard();
-                setInterval(loadAdminDashboard, 5000);
+                setInterval(loadAdminDashboard, 4000);
                 return;
             }
 
@@ -126,7 +128,7 @@
                 aktivniUzivatel = { email: email };
                 currentTeamData = data[0];
                 checkGameStatus();
-                setInterval(checkGameStatus, 5000);
+                setInterval(checkGameStatus, 4000);
             } catch (e) {
                 err.style.display = 'block';
             }
@@ -183,9 +185,8 @@
         async function loadAdminDashboard() {
             if (!_supabase) return;
             try {
-                // OPRAVENO: Živé stahování z tabulky 'tymy'
                 const { data: teams, error } = await _supabase.from('tymy').select('*').order('id', { ascending: true });
-                if (error) { console.error(error); return; }
+                if (error) return;
                 
                 const tbody = document.getElementById('admin-leaderboard-body');
                 if(teams && tbody) {
