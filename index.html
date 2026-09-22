@@ -26,7 +26,7 @@
     <div id="view-login" class="karta">
         <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 15px; text-align: center;">Přihlášení do hry</h2>
         <label style="font-size: 12px; font-weight: bold; color: #64748b;">Přihlašovací jméno / Email</label>
-        <input type="text" id="login-username" placeholder="admin@hra.cz">
+        <input type="text" id="login-username" placeholder="ab">
         <label style="font-size: 12px; font-weight: bold; color: #64748b;">Heslo</label>
         <input type="password" id="login-password" placeholder="••••••••">
         <p id="login-error" style="color: #dc2626; font-size: 12px; font-weight: bold; display: none; text-align: center;">❌ Nesprávné údaje.</p>
@@ -103,8 +103,9 @@
             const err = document.getElementById('login-error');
             err.style.display = 'none';
 
+            // NATVRDO NASTAVENÝ ADMIN 'ab' A 'ab'
             if(email === 'ab' && pass === 'ab') {
-                aktivniUzivatel = { email: 'admin' };
+                aktivniUzivatel = { email: 'Administrátor' };
                 showView('view-admin');
                 loadAdminDashboard();
                 setInterval(loadAdminDashboard, 5000);
@@ -182,7 +183,10 @@
         async function loadAdminDashboard() {
             if (!_supabase) return;
             try {
-                const { data: teams } = await _supabase.from('tymy').select('*').order('id', { ascending: true });
+                // OPRAVENO: Živé stahování z tabulky 'tymy'
+                const { data: teams, error } = await _supabase.from('tymy').select('*').order('id', { ascending: true });
+                if (error) { console.error(error); return; }
+                
                 const tbody = document.getElementById('admin-leaderboard-body');
                 if(teams && tbody) {
                     tbody.innerHTML = teams.map(t => `
