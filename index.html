@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔒 ŠIFROVAČKA 2026.</title>
+    <title>🔒 ŠIFROVAČKA 2026</title>
     <style>
         body { font-family: sans-serif; background-color: #f1f5f9; padding: 20px; text-align: center; }
         .karta { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-width: 400px; margin: 20px auto; text-align: left; }
@@ -15,7 +15,7 @@
         th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
         th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #64748b; }
     </style>
-    <!-- Stabilní načítání Supabase knihovny, které sítě neblokují -->
+    <!-- Stabilní načítání Supabase z unpkg knihovny -->
     <script src="https://unpkg.com"></script>
 </head>
 <body>
@@ -39,7 +39,7 @@
         <h2 style="font-size: 20px; font-weight: 800;">Připravte se na start!</h2>
         <p style="color: #059669; font-weight: bold; font-size: 18px; margin-top: 15px;">Čekání na hromadný start...</p>
     </div>
-       <!-- 3. OBRAZOVKA: HERNÍ PANEL -->
+    <!-- 3. OBRAZOVKA: HERNÍ PANEL -->
     <div id="view-game" class="karta hidden">
         <span id="game-station-num" style="background: #ecfdf5; color: #047857; font-weight: bold; font-size: 12px; padding: 4px 8px; border-radius: 9999px;">1. Stanoviště</span>
         <h2 id="game-cipher-name" style="font-size: 20px; font-weight: 800; margin-top: 10px;">Načítání...</h2>
@@ -58,7 +58,7 @@
     </div>
 
     <!-- 5. OBRAZOVKA: PANEL ORGANIZÁTORA -->
-    <div id="view-admin" class="karta" style="max-width: 600px;">
+    <div id="view-admin" class="karta hidden" style="max-width: 600px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
             <h2 style="font-size: 20px; font-weight: 800; margin: 0;">🛠️ Panel organizátora</h2>
             <button onclick="startGlobalGame()" style="width: auto; margin: 0; padding: 8px 15px; background: #2563eb; font-size: 12px;">⚡ ODSTARTOVAT HRU</button>
@@ -83,7 +83,7 @@
         let aktivniUzivatel = null;
         let currentTeamData = null;
         let _supabase = null;
-        let gameTimerInterval = null; // Definice chybějícího intervalu
+        let gameTimerInterval = null;
 
         if (typeof supabase !== 'undefined') {
             _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -99,17 +99,8 @@
             document.getElementById('user-display').innerText = aktivniUzivatel ? `Přihlášen: ${aktivniUzivatel.email}` : 'Nepřihlášen';
         }
 
-        // --- OPRAVENÁ SMYČKA PRO AUTOMATICKÉ NAČÍTÁNÍ PO OTEVŘENÍ WEBU ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Automaticky přihlásíme fiktivního admina a spustíme načítání týmů
-            aktivniUzivatel = { email: 'Administrátor' };
-            document.getElementById('user-display').innerText = `Přihlášen: Administrátor`;
-            
-            loadAdminDashboard(); // První okamžité načtení dat z DB
-            
-            clearInterval(gameTimerInterval);
-            gameTimerInterval = setInterval(loadAdminDashboard, 4000); // Pravidelná aktualizace každé 4 sekundy
-        });
+        // Výchozí zobrazení přihlášení
+        showView('view-login');
 
         async function handleLogin() {
             const email = document.getElementById('login-username').value.trim();
@@ -138,26 +129,20 @@
                     return;
                 }
                 aktivniUzivatel = { email: email };
-                currentTeamData = data[0] || data; // Ošetření pole z DB
+                currentTeamData = data[0];
                 checkGameStatus();
                 clearInterval(gameTimerInterval);
                 gameTimerInterval = setInterval(checkGameStatus, 4000);
-            } catch (e) {
-                if (err) err.style.display = 'block';
-            }
+            } catch (e) { if (err) err.style.display = 'block'; }
         }
-
-                async function checkGameStatus() {
+        async function checkGameStatus() {
             if (!currentTeamData || !_supabase) return;
             try {
-                const { data: config, error: configErr } = await _supabase.from('nastaveni_hry').select('*').eq('klic', 'cas_startu').maybeSingle();
-                const { data: team, error: teamErr } = await _supabase.from('tymy').select('*').eq('id', currentTeamData.id).maybeSingle();
-                
-                if (configErr) console.error("Chyba nastaveni_hry:", configErr.message);
-                if (teamErr) console.error("Chyba tymy:", teamErr.message);
-                if (team) currentTeamData = team;
+                const { data: config } = await _supabase.from('nastaveni_hry').select('*').eq('klic', 'cas_startu');
+                const { data: team } = await _supabase.from('tymy').select('*').eq('id', currentTeamData.id);
+                if (team && team.length > 0) currentTeamData = team[0];
 
-                if (!config || !config.hodnota) {
+                if (!config || config.length === 0 || !config[0].hodnota) {
                     showView('view-lobby');
                     return;
                 }
@@ -167,91 +152,70 @@
                     return;
                 }
 
-                const { data: cipher, error: cipherErr } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id).maybeSingle();
-                if (cipherErr) console.error("Chyba sifry:", cipherErr.message);
-                
-                if (cipher) {
+                const { data: cipher } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id);
+                if(cipher && cipher.length > 0) {
                     showView('view-game');
-                    document.getElementById('game-cipher-name').innerText = cipher.nazev_sifry || "Bez názvu";
-                    document.getElementById('game-station-num').innerText = `${cipher.poradi || 1}. Stanoviště`;
+                    document.getElementById('game-cipher-name').innerText = cipher[0].nazev_sifry;
+                    document.getElementById('game-station-num').innerText = `${cipher[0].poradi}. Stanoviště`;
                 }
-            } catch (e) { console.error("Kritická chyba smyčky:", e); }
+            } catch (e) { console.error(e); }
         }
 
         async function submitCode() {
             const inputCode = document.getElementById('game-input-code').value.trim().toUpperCase();
             const errorElement = document.getElementById('game-error');
             if (errorElement) errorElement.style.display = 'none';
-            if (!inputCode || !currentTeamData) return;
+            if (!inputCode) return;
 
             try {
-                const { data: cipher } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id).maybeSingle();
-                if (cipher && cipher.kod_stanoviste && cipher.kod_stanoviste.toUpperCase() === inputCode) {
-                    const dalsiSifra = (currentTeamData.aktualni_sifra_id || 1) + 1;
-                    await _supabase.from('tymy').update({ aktualni_sifra_id: dalsiSifra }).eq('id', currentTeamData.id);
+                const { data: cipher } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id);
+                if (cipher && cipher.length > 0 && cipher[0].kod_stanoviste.toUpperCase() === inputCode) {
+                    await _supabase.from('tymy').update({ aktualni_sifra_id: currentTeamData.aktualni_sifra_id + 1 }).eq('id', currentTeamData.id);
                     document.getElementById('game-input-code').value = '';
                     alert('🎉 Správně!');
                     checkGameStatus();
-                } else {
-                    if (errorElement) errorElement.style.display = 'block';
-                }
+                } else { if (errorElement) errorElement.style.display = 'block'; }
             } catch (e) { console.error(e); }
         }
 
+        // --- OPRAVA: PŘIDÁNO ASYNC PRO SPRÁVNÉ SPUŠTĚNÍ DASHBOARDU ---
         async function loadAdminDashboard() {
             if (!_supabase) return;
             const body = document.getElementById('admin-leaderboard-body');
             if (!body) return;
 
             try {
-                // Bezpečný dotaz na týmy
-                const { data: tymy, error: tymyErr } = await _supabase.from('tymy').select('*');
-                if (tymyErr) {
-                    console.error("Chyba načítání týmů v adminu:", tymyErr.message);
-                    body.innerHTML = `<tr><td colspan="3" style="color:red;padding:10px;">Chyba DB: ${tymyErr.message}</td></tr>`;
-                    return;
-                }
-
-                // Bezpečný dotaz na šifry
-                const { data: sifry, error: sifryErr } = await _supabase.from('sifry').select('*');
-                if (sifryErr) console.error("Chyba načítání šifer v adminu:", sifryErr.message);
+                const { data: tymy } = await _supabase.from('tymy').select('*');
+                const { data: sifry } = await _supabase.from('sifry').select('id, nazev_sifry');
                 
                 const sifryMapa = {};
-                if (sifry) { sifry.forEach(s => { if(s.id && s.nazev_sifry) sifryMapa[s.id] = s.nazev_sifry; }); }
+                if (sifry) { sifry.forEach(s => { sifryMapa[s.id] = s.nazev_sifry; }); }
 
                 body.innerHTML = '';
-                
-                if (!tymy || tymy.length === 0) {
-                    body.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:15px;color:#64748b;">V tabulce 'tymy' nejsou žádná data.</td></tr>`;
-                    return;
+                if (tymy) {
+                    tymy.forEach(tym => {
+                        const radek = document.createElement('tr');
+                        const poziceText = tym.aktualni_sifra_id && sifryMapa[tym.aktualni_sifra_id] ? sifryMapa[tym.aktualni_sifra_id] : '⏳ V lobby / Start';
+                        radek.innerHTML = `
+                            <td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold;">${tym.nazev_tymu}</td>
+                            <td style="padding:10px;border-bottom:1px solid #e2e8f0;color:#475569;">${poziceText}</td>
+                            <td style="padding:10px;border-bottom:1px solid #e2e8f0;"><button style="width:auto;margin:0;padding:4px 8px;font-size:11px;background:#64748b;color:white;border:none;border-radius:4px;" onclick="alert('${tym.nazev_tymu}')">Detail</button></td>
+                        `;
+                        body.appendChild(radek);
+                    });
                 }
-
-                tymy.forEach(tym => {
-                    const radek = document.createElement('tr');
-                    const poziceText = tym.aktualni_sifra_id && sifryMapa[tym.aktualni_sifra_id] ? sifryMapa[tym.aktualni_sifra_id] : '⏳ V lobby / Start';
-                    radek.innerHTML = `
-                        <td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold;">${tym.nazev_tymu || 'Bezejmenný tým'}</td>
-                        <td style="padding:10px;border-bottom:1px solid #e2e8f0;color:#475569;">${poziceText}</td>
-                        <td style="padding:10px;border-bottom:1px solid #e2e8f0;"><button style="width:auto;margin:0;padding:4px 8px;font-size:11px;background:#64748b;" onclick="alert('Tým: ${tym.nazev_tymu}')">Detail</button></td>
-                    `;
-                    body.appendChild(radek);
-                });
-            } catch (e) { console.error("Chyba vykreslování admin panelu:", e); }
+            } catch (e) { console.error(e); }
         }
 
         async function startGlobalGame() {
-            if (!_supabase || !confirm('Opravdu odstartovat hru pro všechny týmy?')) return;
+            if (!_supabase || !confirm('Odstartovat hru?')) return;
             try {
                 const nyni = new Date().toISOString();
-                const { error: err1 } = await _supabase.from('nastaveni_hry').update({ hodnota: nyni }).eq('klic', 'cas_startu');
-                const { error: err2 } = await _supabase.from('tymy').update({ aktualni_sifra_id: 1 }).is('aktualni_sifra_id', null);
-                
-                if (err1) alert('Chyba nastavení: ' + err1.message);
-                else if (err2) alert('Chyba přiřazení šifer týmům: ' + err2.message);
-                else alert('⚡ Hra byla úspěšně odstartována!');
-                
+                await _supabase.from('nastaveni_hry').update({ hodnota: nyni }).eq('klic', 'cas_startu');
+                await _supabase.from('tymy').update({ aktualni_sifra_id: 1 }).is('aktualni_sifra_id', null);
+                alert('⚡ Odstartováno!');
                 loadAdminDashboard();
-            } catch (e) { alert("Chyba při startu: " + e.message); }
+            } catch (e) { alert(e.message); }
         }
     </script>
 </body>
