@@ -39,7 +39,6 @@
         <h2 style="font-size: 20px; font-weight: 800;">Připravte se na start!</h2>
         <p style="color: #059669; font-weight: bold; font-size: 18px; margin-top: 15px;">Čekání na hromadný start...</p>
     </div>
-
     <!-- 3. OBRAZOVKA: HERNÍ PANEL -->
     <div id="view-game" class="karta hidden">
         <span id="game-station-num" style="background: #ecfdf5; color: #047857; font-weight: bold; font-size: 12px; padding: 4px 8px; border-radius: 9999px;">1. Stanoviště</span>
@@ -47,7 +46,7 @@
         
         <div id="hint-box" style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 8px; margin: 15px 0; font-size: 14px;">
             <p id="hint-timer" style="margin: 0; font-weight: bold; color: #1e40af;">Nápověda se odemkne za: --:--</p>
-            <p id="hint-text" style="margin-top: 8px; display: none; color: #334155; italic;"></p>
+            <p id="hint-text" style="margin-top: 8px; display: none; color: #334155; font-style: italic;"></p>
         </div>
 
         <input type="text" id="game-input-code" placeholder="ZADEJTE KÓD STANOVIŠTĚ" style="text-transform: uppercase; text-align: center; font-weight: bold;">
@@ -61,8 +60,8 @@
         <p style="color: #475569; margin-top: 10px;">Gratulujeme k dokončení celé hry.</p>
     </div>
 
-    <!-- 5. OBRAZOVKA: PANEL ORGANIZÁTORA -->
-    <div id="view-admin" class="karta hidden" style="max-width: 600px;">
+    <!-- 5. OBRAZOVKA: PANEL ORGANIZÁTORA (Pevně provázané ID tabulky) -->
+    <div id="view-admin" class="karta" style="max-width: 600px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
             <h2 style="font-size: 20px; font-weight: 800; margin: 0;">🛠️ Panel organizátora</h2>
             <button id="btn-start-game" style="width: auto; margin: 0; padding: 8px 15px; background: #2563eb; font-size: 12px;">⚡ ODSTARTOVAT HRU</button>
@@ -76,8 +75,13 @@
                     <th>Akce</th>
                 </tr>
             </thead>
+            <!-- Zde je klíčové ID, do kterého app.js vkládá řádky -->
             <tbody id="admin-leaderboard-body">
-                <tr><td colspan="3" style="text-align: center; color: #64748b; font-style: italic;">Načítám týmy...</td></tr>
+                <tr>
+                    <td colspan="3" style="text-align: center; color: #64748b; font-style: italic; padding: 15px;">
+                        Načítám týmy z databáze Supabase...
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
