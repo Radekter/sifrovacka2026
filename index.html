@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔒 ŠIFROVAČKA 2026.</title>
+    <title>🔒 ŠIFROVAČKA 2026</title>
     <style>
         body { font-family: sans-serif; background-color: #f1f5f9; padding: 20px; text-align: center; }
         .karta { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-width: 400px; margin: 20px auto; text-align: left; }
@@ -15,8 +15,8 @@
         th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
         th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #64748b; }
     </style>
-    <!-- Stabilní načítání Supabase knihovny, které sítě neblokují -->
-    <script src="https://unpkg.com"></script>
+    <!-- Oficiální produkční SDK knihovna Supabase -->
+    <script src="https://jsdelivr.net"></script>
 </head>
 <body>
 
@@ -31,7 +31,7 @@
         <label style="font-size: 12px; font-weight: bold; color: #64748b;">Heslo</label>
         <input type="password" id="login-password" placeholder="••••••••">
         <p id="login-error" style="color: #dc2626; font-size: 12px; font-weight: bold; display: none; text-align: center;">❌ Nesprávné údaje.</p>
-        <button onclick="handleLogin()">Vstoupit do terminálu</button>
+        <button id="btn-login">Vstoupit do terminálu</button>
     </div>
 
     <!-- 2. OBRAZOVKA: LOBBY ČEKÁRNA -->
@@ -44,12 +44,15 @@
     <div id="view-game" class="karta hidden">
         <span id="game-station-num" style="background: #ecfdf5; color: #047857; font-weight: bold; font-size: 12px; padding: 4px 8px; border-radius: 9999px;">1. Stanoviště</span>
         <h2 id="game-cipher-name" style="font-size: 20px; font-weight: 800; margin-top: 10px;">Načítání...</h2>
+        
         <div id="hint-box" style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 8px; margin: 15px 0; font-size: 14px;">
-            <p id="hint-timer">Načítání odpočtu...</p>
+            <p id="hint-timer" style="margin: 0; font-weight: bold; color: #1e40af;">Nápověda se odemkne za: --:--</p>
+            <p id="hint-text" style="margin-top: 8px; display: none; color: #334155; italic;"></p>
         </div>
+
         <input type="text" id="game-input-code" placeholder="ZADEJTE KÓD STANOVIŠTĚ" style="text-transform: uppercase; text-align: center; font-weight: bold;">
         <p id="game-error" style="color: #dc2626; font-size: 12px; font-weight: bold; display: none; text-align: center;">❌ Nesprávný kód.</p>
-        <button onclick="submitCode()">Odeslat kód</button>
+        <button id="btn-submit-code">Odeslat kód</button>
     </div>
 
     <!-- 4. OBRAZOVKA: CÍL -->
@@ -62,7 +65,7 @@
     <div id="view-admin" class="karta hidden" style="max-width: 600px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
             <h2 style="font-size: 20px; font-weight: 800; margin: 0;">🛠️ Panel organizátora</h2>
-            <button onclick="startGlobalGame()" style="width: auto; margin: 0; padding: 8px 15px; background: #2563eb; font-size: 12px;">⚡ ODSTARTOVAT HRU</button>
+            <button id="btn-start-game" style="width: auto; margin: 0; padding: 8px 15px; background: #2563eb; font-size: 12px;">⚡ ODSTARTOVAT HRU</button>
         </div>
         <h3 style="font-size: 14px; font-weight: bold; color: #1e293b;">📊 ŽIVÉ VÝSLEDKY TÝMŮ</h3>
         <table>
@@ -73,146 +76,13 @@
                     <th>Akce</th>
                 </tr>
             </thead>
-            <tbody id="admin-leaderboard-body"></tbody>
+            <tbody id="admin-leaderboard-body">
+                <tr><td colspan="3" style="text-align: center; color: #64748b; font-style: italic;">Načítám týmy...</td></tr>
+            </tbody>
         </table>
     </div>
-    <script>
-        const SUPABASE_URL = "https://supabase.co";
-        // Váš zbrusu nový funkční Legacy anon klíč bez RLS blokování
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jY2VsdGZvbW9iaWdwZHNocmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDc5NzEsImV4cCI6MjEwNTU4Mzk3MX0.MWa8_pFLcELq-S3B0UIKGrXmI-tHIep8CO-GtMEB9t4";
 
-        let aktivniUzivatel = null;
-        let currentTeamData = null;
-        let _supabase = null;
-
-        if (typeof supabase !== 'undefined') {
-            _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        }
-
-        function showView(viewId) {
-            ['view-login', 'view-lobby', 'view-game', 'view-finish', 'view-admin'].forEach(id => {
-                document.getElementById(id).style.display = 'none';
-            });
-            document.getElementById(viewId).style.display = 'block';
-            document.getElementById('user-display').innerText = aktivniUzivatel ? `Přihlášen: ${aktivniUzivatel.email}` : 'Nepřihlášen';
-        }
-
-        showView('view-login');
-
-        async function handleLogin() {
-            const email = document.getElementById('login-username').value.trim();
-            const pass = document.getElementById('login-password').value.trim();
-            const err = document.getElementById('login-error');
-            err.style.display = 'none';
-
-            // Vaše nové přihlášení ab a ab
-            if(email === 'ab' && pass === 'ab') {
-                aktivniUzivatel = { email: 'Administrátor' };
-                showView('view-admin');
-                loadAdminDashboard();
-                setInterval(loadAdminDashboard, 4000);
-                return;
-            }
-
-            if (!_supabase) {
-                alert("❌ Nelze se spojit s databází.");
-                return;
-            }
-
-            try {
-                const { data, error } = await _supabase.from('tymy').select('*').eq('prihlasovaci_jmeno', email).eq('heslo', pass);
-                if (error || !data || data.length === 0) {
-                    err.style.display = 'block';
-                    return;
-                }
-                aktivniUzivatel = { email: email };
-                currentTeamData = data;
-                checkGameStatus();
-                setInterval(checkGameStatus, 4000);
-            } catch (e) {
-                err.style.display = 'block';
-            }
-        }
-
-        async function checkGameStatus() {
-            if (!currentTeamData || !_supabase) return;
-            try {
-                const { data: config } = await _supabase.from('nastaveni_hry').select('*').eq('klic', 'cas_startu');
-                const { data: team } = await _supabase.from('tymy').select('*').eq('id', currentTeamData.id);
-                if (team && team.length > 0) currentTeamData = team;
-
-                if (!config || config.length === 0) {
-                    showView('view-lobby');
-                    return;
-                }
-
-                if (currentTeamData.aktualni_sifra_id === null || currentTeamData.aktualni_sifra_id > 4) {
-                    showView('view-finish');
-                    return;
-                }
-
-                const { data: cipher } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id);
-                if(cipher && cipher.length > 0) {
-                    showView('view-game');
-                    document.getElementById('game-station-num').innerText = `${cipher.poradi}. Stanoviště`;
-                    document.getElementById('game-cipher-name').innerText = cipher.nazev_sifry;
-                    document.getElementById('hint-timer').innerText = cipher.napoveda_text ? `💡 Nápověda: ${cipher.napoveda_text}` : 'Pro toto stanoviště není nápověda.';
-                }
-            } catch (e) {}
-        }
-
-        async function submitCode() {
-            if (!_supabase || !currentTeamData) return;
-            const input = document.getElementById('game-input-code').value.trim().toUpperCase();
-            const err = document.getElementById('game-error');
-            err.style.display = 'none';
-
-            try {
-                const { data: cipher = } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id);
-                if (cipher && cipher.length > 0 && input === cipher[0].kod_stanoviste.toUpperCase()) {
-                    let nextIndex = currentTeamData.aktualni_sifra_id + 1;
-                    await _supabase.from('tymy').update({ aktualni_sifra_id: nextIndex }).eq('id', currentTeamData.id);
-                    document.getElementById('game-input-code').value = '';
-                    checkGameStatus();
-                } else {
-                    err.style.display = 'block';
-                }
-            } catch (e) {
-                err.style.display = 'block';
-            }
-        }
-
-        async function loadAdminDashboard() {
-            if (!_supabase) return;
-            try {
-                const { data: teams, error } = await _supabase.from('tymy').select('*').order('id', { ascending: true });
-                if (error) return;
-                
-                const tbody = document.getElementById('admin-leaderboard-body');
-                if(teams && tbody) {
-                    tbody.innerHTML = teams.map(t => `
-                        <tr>
-                            <td><b>${t.nazev_tymu}</b></td>
-                            <td>${t.aktualni_sifra_id ? t.aktualni_sifra_id + '. šifra' : '<span style="color:blue;font-weight:bold;">Lobby / Cíl</span>'}</td>
-                            <td><button onclick="forceNext(${t.id}, ${t.aktualni_sifra_id || 1})" style="width:auto;padding:4px 8px;font-size:11px;background:#64748b;margin:0;">Posunout ➔</button></td>
-                        </tr>
-                    `).join('');
-                }
-            } catch(e) {}
-        }
-
-        async function forceNext(teamId, currentId) {
-            if (!_supabase) return;
-            await _supabase.from('tymy').update({ aktualni_sifra_id: currentId + 1 }).eq('id', teamId);
-            loadAdminDashboard();
-        }
-
-        async function startGlobalGame() {
-            if (!_supabase) return;
-            const nowIso = new Date().toISOString();
-            await _supabase.from('nastaveni_hry').upsert({ klic: 'cas_startu', hodnota: nowIso });
-            alert("🚀 Hra byla hromadně odstartována!");
-        }
-    </script>
+    <!-- Načtení externího skriptu s aplikační logikou -->
+    <script src="app.js"></script>
 </body>
 </html>
