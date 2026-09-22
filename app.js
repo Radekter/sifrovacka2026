@@ -1,5 +1,5 @@
 // ==========================================
-// NOVÝ KÓD: ČÁST 1 (KONFIGURACE A HRÁČ)
+// NOVÝ KÓD: ČÁST 1 (AUTOMATICKÝ START)
 // ==========================================
 
 // --- CONFIGURACE DATABÁZE ---
@@ -35,7 +35,7 @@ function showView(viewId) {
     if (userDisplayEl) userDisplayEl.innerText = `Přihlášen: ${displayEmail}`;
 }
 
-// Inicializace event listenerů po načtení stránky
+// Inicializace event listenerů a AUTOMATICKÉ SPUŠTĚNÍ
 document.addEventListener('DOMContentLoaded', () => {
     const btnLogin = document.getElementById('btn-login');
     const btnStartGame = document.getElementById('btn-start-game');
@@ -45,7 +45,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnStartGame) btnStartGame.addEventListener('click', startGlobalGame);
     if (btnSubmitCode) btnSubmitCode.addEventListener('click', submitCode);
     
-    showView('view-login');
+    // --- OPRAVA: Pokud je v HTML viditelný panel admina, ihned spustíme načítání ---
+    const adminPanel = document.getElementById('view-admin');
+    if (adminPanel && adminPanel.style.display !== 'none') {
+        aktivniUzivatel = { email: 'Administrátor (Přímý vstup)' };
+        loadAdminDashboard();
+        clearInterval(gameTimerInterval);
+        gameTimerInterval = setInterval(loadAdminDashboard, 4000);
+    } else {
+        showView('view-login');
+    }
 });
 
 // --- LOGIKA PŘIHLÁŠENÍ ---
@@ -78,7 +87,7 @@ async function handleLogin() {
         }
         
         aktivniUzivatel = { email: email };
-        currentTeamData = data[0];
+        currentTeamData = data;
         
         checkGameStatus();
         clearInterval(gameTimerInterval);
@@ -119,6 +128,7 @@ async function checkGameStatus() {
         console.error("Chyba herní smyčky:", e);
     }
 }
+
 // ==========================================
 // NOVÝ KÓD: ČÁST 2 (NÁPOVĚDY A OPRAVENÝ ADMIN)
 // ==========================================
