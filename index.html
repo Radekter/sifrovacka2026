@@ -15,7 +15,7 @@
         th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
         th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #64748b; }
     </style>
-    <!-- Stabilní načítání Supabase knihovny z unpkg, které sítě neblokují -->
+    <!-- Stabilní načítání Supabase knihovny, které sítě neblokují -->
     <script src="https://unpkg.com"></script>
 </head>
 <body>
@@ -78,7 +78,7 @@
     </div>
     <script>
         const SUPABASE_URL = "https://supabase.co";
-        // Váš zbrusu nový správný klíč ze Supabase
+        // Váš zbrusu nový funkční Legacy anon klíč bez RLS blokování
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jY2VsdGZvbW9iaWdwZHNocmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDc5NzEsImV4cCI6MjEwNTU4Mzk3MX0.MWa8_pFLcELq-S3B0UIKGrXmI-tHIep8CO-GtMEB9t4";
 
         let aktivniUzivatel = null;
@@ -105,7 +105,7 @@
             const err = document.getElementById('login-error');
             err.style.display = 'none';
 
-            // Vaše přihlášení ab a ab
+            // Vaše nové přihlášení ab a ab
             if(email === 'ab' && pass === 'ab') {
                 aktivniUzivatel = { email: 'Administrátor' };
                 showView('view-admin');
@@ -126,7 +126,7 @@
                     return;
                 }
                 aktivniUzivatel = { email: email };
-                currentTeamData = data[0];
+                currentTeamData = data;
                 checkGameStatus();
                 setInterval(checkGameStatus, 4000);
             } catch (e) {
@@ -139,7 +139,7 @@
             try {
                 const { data: config } = await _supabase.from('nastaveni_hry').select('*').eq('klic', 'cas_startu');
                 const { data: team } = await _supabase.from('tymy').select('*').eq('id', currentTeamData.id);
-                if (team && team.length > 0) currentTeamData = team[0];
+                if (team && team.length > 0) currentTeamData = team;
 
                 if (!config || config.length === 0) {
                     showView('view-lobby');
@@ -154,9 +154,9 @@
                 const { data: cipher } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id);
                 if(cipher && cipher.length > 0) {
                     showView('view-game');
-                    document.getElementById('game-station-num').innerText = `${cipher[0].poradi}. Stanoviště`;
-                    document.getElementById('game-cipher-name').innerText = cipher[0].nazev_sifry;
-                    document.getElementById('hint-timer').innerText = cipher[0].napoveda_text ? `💡 Nápověda: ${cipher[0].napoveda_text}` : 'Pro toto stanoviště není nápověda.';
+                    document.getElementById('game-station-num').innerText = `${cipher.poradi}. Stanoviště`;
+                    document.getElementById('game-cipher-name').innerText = cipher.nazev_sifry;
+                    document.getElementById('hint-timer').innerText = cipher.napoveda_text ? `💡 Nápověda: ${cipher.napoveda_text}` : 'Pro toto stanoviště není nápověda.';
                 }
             } catch (e) {}
         }
@@ -168,7 +168,7 @@
             err.style.display = 'none';
 
             try {
-                const { data: cipher } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id);
+                const { data: cipher = [] } = await _supabase.from('sifry').select('*').eq('id', currentTeamData.aktualni_sifra_id);
                 if (cipher && cipher.length > 0 && input === cipher[0].kod_stanoviste.toUpperCase()) {
                     let nextIndex = currentTeamData.aktualni_sifra_id + 1;
                     await _supabase.from('tymy').update({ aktualni_sifra_id: nextIndex }).eq('id', currentTeamData.id);
